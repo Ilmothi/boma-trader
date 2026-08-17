@@ -114,7 +114,7 @@ input:focus,select:focus{outline:none;border-color:var(--ochre);}
 .empty p{font-size:0.9rem;margin:4px 0;}
 
 nav.tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--bg-raised);border-top:1px solid var(--line);display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom);max-width:640px;margin:0 auto;}
-nav.tabbar button{flex:1;background:none;border:none;color:var(--cream-dim);padding:11px 4px 9px;font-family:inherit;font-size:0.66rem;text-transform:uppercase;letter-spacing:0.03em;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+nav.tabbar button{flex:1;background:none;border:none;color:var(--cream-dim);padding:11px 2px 9px;font-family:inherit;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.02em;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
 nav.tabbar button .ic{font-size:1.2rem;}
 nav.tabbar button.on{color:var(--ochre);}
 

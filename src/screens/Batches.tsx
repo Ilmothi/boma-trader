@@ -117,7 +117,7 @@ function AddBatchSheet({ userId, store, onClose }: { userId: string; store: Stor
 function DetailSheet({ id, store, userId, onClose }:
   { id: string; store: Store; userId: string; onClose: () => void }) {
   const b = store.batches.find(x => x.id === id);
-  const [mode, setMode] = useState<'view' | 'sell' | 'death'>('view');
+  const [mode, setMode] = useState<'view' | 'sell' | 'death' | 'edit'>('view');
   if (!b) return null;
 
   const alive = aliveCount(store, b);
@@ -145,6 +145,7 @@ function DetailSheet({ id, store, userId, onClose }:
 
   if (mode === 'sell') return <SaleSheet batch={b} alive={alive} store={store} userId={userId} onClose={() => setMode('view')} onDone={onClose} />;
   if (mode === 'death') return <DeathSheet batch={b} alive={alive} store={store} userId={userId} onClose={() => setMode('view')} onDone={onClose} />;
+  if (mode === 'edit') return <EditBatchSheet batch={b} soldPlusDead={soldCount(store, b) + deadCount(store, b)} store={store} onClose={() => setMode('view')} />;
 
   return (
     <Sheet title={b.name}
@@ -173,7 +174,68 @@ function DetailSheet({ id, store, userId, onClose }:
         <button className="btn primary" onClick={() => setMode('sell')}>Record sale</button>
         <button className="btn danger" onClick={() => setMode('death')}>Record death</button>
       </>}
+      <button className="btn ghost" onClick={() => setMode('edit')}>Edit batch details</button>
       <button className="btn ghost" onClick={delBatch}>Delete batch</button>
+    </Sheet>
+  );
+}
+
+function EditBatchSheet({ batch, soldPlusDead, store, onClose }:
+  { batch: Batch; soldPlusDead: number; store: Store; onClose: () => void }) {
+  const [name, setName] = useState(batch.name);
+  const [market, setMarket] = useState(batch.market ?? '');
+  const [date, setDate] = useState(batch.purchase_date);
+  const [count, setCount] = useState(String(batch.head_count));
+  const [cost, setCost] = useState(String(batch.cost_per_head));
+  const [target, setTarget] = useState(String(batch.target_months));
+  const [busy, setBusy] = useState(false);
+
+  const c = parseInt(count) || 0, p = parseFloat(cost) || 0;
+
+  async function save() {
+    if (c < 1) { alert('Number of goats must be at least 1.'); return; }
+    if (c < soldPlusDead) {
+      alert(`This batch already has ${soldPlusDead} goats sold or died. The count can't be lower than that. Remove those records first if you need to go lower.`);
+      return;
+    }
+    setBusy(true);
+    await supabase.from('batches').update({
+      name: name.trim() || batch.name,
+      market: market.trim() || null,
+      purchase_date: date,
+      head_count: c,
+      cost_per_head: p,
+      target_months: parseInt(target),
+    }).eq('id', batch.id);
+    await store.refetch();
+    setBusy(false);
+    onClose();
+  }
+
+  return (
+    <Sheet title="Edit batch" sub="Fix any details entered wrong. Sales and deaths already logged stay as they are." onClose={onClose}>
+      <div className="row2">
+        <div><label>Purchase date</label><input type="date" value={date} onChange={e => setDate(e.target.value)} /></div>
+        <div><label>Market</label><input value={market} onChange={e => setMarket(e.target.value)} /></div>
+      </div>
+      <label>Batch label</label>
+      <input value={name} onChange={e => setName(e.target.value)} />
+      <div className="row2">
+        <div><label>Number of goats</label><input type="number" inputMode="numeric" value={count} onChange={e => setCount(e.target.value)} /></div>
+        <div><label>Cost per goat (KES)</label><input type="number" inputMode="decimal" value={cost} onChange={e => setCost(e.target.value)} /></div>
+      </div>
+      <div className="sheet-sub mono" style={{ marginTop: 8 }}>
+        Total cost: {fmt(c * p)}{soldPlusDead > 0 ? ` · ${soldPlusDead} already sold/died` : ''}
+      </div>
+      <label>Target hold period</label>
+      <select value={target} onChange={e => setTarget(e.target.value)}>
+        <option value="6">6 months</option>
+        <option value="9">9 months</option>
+        <option value="12">12 months</option>
+        <option value="18">18 months</option>
+      </select>
+      <button className="btn primary" disabled={busy || c < 1} onClick={save}>Save changes</button>
+      <button className="btn ghost" onClick={onClose}>Cancel</button>
     </Sheet>
   );
 }
